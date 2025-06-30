@@ -1,5 +1,4 @@
-import MainPage from "@/components/mian";
-import Image from "next/image";
+import MainPage from "@/components/main-page/mian";
 
 export default function Home() {
   return (
