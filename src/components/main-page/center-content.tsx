@@ -28,7 +28,7 @@ export const LeftComponent = () => {
                             <div className="w-6 h-6 bg-pink-400 rounded-full animate-bounce delay-150"></div>
                             <div className="w-6 h-6 bg-blue-400 rounded-full animate-bounce delay-300"></div>
                         </div>
-                        <p className="text-white text-lg font-medium">Connecting to your stream...</p>
+                        <p className="text-white text-lg font-medium">Joining...</p>
                     </div>
                 </div>
             )}
