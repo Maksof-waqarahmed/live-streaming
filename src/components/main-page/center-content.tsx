@@ -1,12 +1,37 @@
+'use client'
+import { generateCode } from '@/lib/utils'
+import { ArrowRight, Globe, Play, Shield, Users, Zap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import React from 'react'
 import { Badge } from '../ui/badge'
-import { ArrowRight, Globe, Play, Shield, Star, Users, Zap } from 'lucide-react'
 import { Button } from '../ui/button'
-import Link from 'next/link'
 
 export const LeftComponent = () => {
+    const [loading, setLoading] = React.useState(false)
+    const router = useRouter()
+
+    function handleStartStreaming() {
+        setLoading(true)
+        const generated = generateCode()
+        setTimeout(() => {
+            router.push(`/stream/${generated}`)
+        }, 5000)
+    }
+
     return (
         <>
+            {loading && (
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center">
+                    <div className="flex flex-col items-center space-y-6">
+                        <div className="flex space-x-4">
+                            <div className="w-6 h-6 bg-purple-400 rounded-full animate-bounce"></div>
+                            <div className="w-6 h-6 bg-pink-400 rounded-full animate-bounce delay-150"></div>
+                            <div className="w-6 h-6 bg-blue-400 rounded-full animate-bounce delay-300"></div>
+                        </div>
+                        <p className="text-white text-lg font-medium">Connecting to your stream...</p>
+                    </div>
+                </div>
+            )}
             <div className="space-y-8">
                 <div className="space-y-4">
                     <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 hover:bg-purple-500/30">
@@ -33,42 +58,32 @@ export const LeftComponent = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <Users className="w-4 h-4 text-purple-400" />
+                    {[
+                        ["Direct P2P Connection", Users],
+                        ["Ultra-Low Latency", Zap],
+                        ["End-to-End Encryption", Shield],
+                        ["Global Network", Globe],
+                    ].map(([text, Icon], index) => (
+                        <div key={index} className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                <Icon className="w-4 h-4 text-purple-400" />
+                            </div>
+                            <span className="text-gray-300">{text as React.ReactNode}</span>
                         </div>
-                        <span className="text-gray-300">Direct P2P Connection</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <Zap className="w-4 h-4 text-purple-400" />
-                        </div>
-                        <span className="text-gray-300">Ultra-Low Latency</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <Shield className="w-4 h-4 text-purple-400" />
-                        </div>
-                        <span className="text-gray-300">End-to-End Encryption</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <Globe className="w-4 h-4 text-purple-400" />
-                        </div>
-                        <span className="text-gray-300">Global Network</span>
-                    </div>
+                    ))}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <Link href='/stream/1' className="w-full sm:w-auto">
-                        <Button
-                            size="lg"
-                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-purple-500/25 group"
-                        >
-                            Start Streaming Now
-                            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                    </Link>
+                    <Button
+                        size="lg"
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-purple-500/25 group"
+                        onClick={handleStartStreaming}
+                        disabled={loading}
+                    >
+                        Start Streaming Now
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+
                     <Button
                         size="lg"
                         variant="outline"

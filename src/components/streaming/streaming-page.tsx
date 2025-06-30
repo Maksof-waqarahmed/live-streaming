@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ButtonBar } from "./button-bar"
 import { Chat } from "./chat"
 import { InvitePopup } from "./invite-popup"
@@ -9,6 +9,7 @@ import { MainArea } from "./main-area"
 export default function StreamingPage() {
     const [showMeetingInfo, setShowMeetingInfo] = useState(true)
     const [showChat, setShowChat] = useState(false)
+    const [screen, setScreen] = useState(null)
 
     const handleCloseInvitePopup = (data: boolean) => {
         setShowMeetingInfo(data);
@@ -18,6 +19,10 @@ export default function StreamingPage() {
         setShowChat(!showChat);
     }
 
+    useEffect(() => {
+        
+    }, [screen])
+
     return (
         <div className="min-h-screen bg-gray-800 relative">
 
@@ -25,14 +30,14 @@ export default function StreamingPage() {
                 <InvitePopup setShowMeetingInfo={handleCloseInvitePopup} />
             )}
 
-            <MainArea />
+            <MainArea screen={screen} />
 
-            <ButtonBar showChat={showChat} setShowChat={toggleChat} />
+            <ButtonBar showChat={showChat} setShowChat={toggleChat} shareScreen={setScreen} />
 
             {showChat && (
                 <Chat setShowChat={setShowChat} />
             )}
-            
+
         </div>
     )
 }

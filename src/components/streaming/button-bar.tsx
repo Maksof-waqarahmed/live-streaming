@@ -1,16 +1,40 @@
 'use client'
-import React, { useState } from 'react'
-import { Button } from '../ui/button'
-import { MessageCircle, Mic, MicOff, Monitor, MoreVertical, PhoneOff, Settings, Video, VideoOff } from 'lucide-react'
+import { MessageCircle, Mic, MicOff, Monitor, PhoneOff, Video, VideoOff } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '../ui/button';
 
 interface ButtonBarProps {
     showChat: boolean;
     setShowChat: (value: boolean) => void;
+    shareScreen: (data: any) => void;
 }
 
-export const ButtonBar = ({ showChat, setShowChat }: ButtonBarProps) => {
+export const ButtonBar = ({ showChat, setShowChat, shareScreen }: ButtonBarProps) => {
     const [isMuted, setIsMuted] = useState(false)
     const [isVideoOff, setIsVideoOff] = useState(false)
+
+    const handleScreenSharing = async () => {
+        try {
+            const screen = await navigator.mediaDevices.getDisplayMedia({
+                audio: true,
+                video: true
+            })
+            shareScreen(screen);
+
+        } catch (error) {
+            console.error("Error accessing display media:", error);
+            return;
+
+        }
+        // if (screen) {
+        //     screen.getTracks().forEach(track => {
+        //         track.onended = () => {
+        //             shareScreen(null);
+        //         };
+        //     });
+        // }
+        console.log("Screen", screen);
+    }
 
     return (
         <>
@@ -42,16 +66,17 @@ export const ButtonBar = ({ showChat, setShowChat }: ButtonBarProps) => {
                             variant="ghost"
                             size="lg"
                             className="rounded-full w-12 h-12 bg-gray-700 hover:bg-gray-600 text-white"
+                            onClick={handleScreenSharing}
                         >
                             <Monitor className="h-5 w-5" />
                         </Button>
-                        <Button
+                        {/* <Button
                             variant="ghost"
                             size="lg"
                             className="rounded-full w-12 h-12 bg-gray-700 hover:bg-gray-600 text-white"
                         >
                             <MoreVertical className="h-5 w-5" />
-                        </Button>
+                        </Button> */}
 
                         <Button
                             variant="ghost"

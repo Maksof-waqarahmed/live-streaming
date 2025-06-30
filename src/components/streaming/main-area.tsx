@@ -1,12 +1,22 @@
 'use client'
 import { MicOff } from 'lucide-react'
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Badge } from '../ui/badge'
-
-export const MainArea = () => {
+interface MainAreaProps {
+    screen: MediaStream | null;
+}
+export const MainArea = ({ screen }: MainAreaProps) => {
+    console.log("Screen Share", screen)
     const [isVideoOff, setIsVideoOff] = React.useState(false);
     const [isMuted, setIsMuted] = React.useState(false);
     const [showChat, setShowChat] = React.useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (videoRef.current && screen) {
+            videoRef.current.srcObject = screen;
+        }
+    }, [screen]);
     return (
         <>
             <div className={`flex ${showChat ? "mr-96" : ""} transition-all duration-300`}>
@@ -26,12 +36,23 @@ export const MainArea = () => {
                                 </div>
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-blue-900/50 to-purple-900/50 flex items-center justify-center">
-                                    <div className="text-center">
-                                        <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                            <span className="text-white text-2xl font-semibold">You</span>
+                                    {screen ? (
+                                        <video
+                                            ref={videoRef}
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+
+                                        <div className="text-center">
+                                            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                                                <span className="text-white text-2xl font-semibold">You</span>
+                                            </div>
+                                            <p className="text-white/80 text-lg">Your Video</p>
                                         </div>
-                                        <p className="text-white/80 text-lg">Your Video</p>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
