@@ -1,6 +1,7 @@
 'use client'
 import { MessageCircle, Mic, MicOff, Monitor, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useEffect } from 'react';
 
 interface ButtonBarProps {
     showChat: boolean;
@@ -16,28 +17,6 @@ interface ButtonBarProps {
 
 export const ButtonBar = ({ showChat, setShowChat, shareScreen, isMuted, setIsMuted, isVideoOff, setIsVideoOff, setCamera, camera }: ButtonBarProps) => {
 
-    const handleScreenSharing = async () => {
-        try {
-            const screen = await navigator.mediaDevices.getDisplayMedia({
-                audio: true,
-                video: true
-            })
-            shareScreen(screen);
-
-        } catch (error) {
-            console.error("Error accessing display media:", error);
-            return;
-
-        }
-        // if (screen) {
-        //     screen.getTracks().forEach(track => {
-        //         track.onended = () => {
-        //             shareScreen(null);
-        //         };
-        //     });
-        // }
-    }
-
     const handleVideoToggle = async () => {
         if (!isVideoOff) {
             camera?.getTracks().forEach(track => track.stop());
@@ -47,17 +26,42 @@ export const ButtonBar = ({ showChat, setShowChat, shareScreen, isMuted, setIsMu
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true,
+                    audio: true,
                 });
-
-                if (stream.getVideoTracks().length > 0) {
-                    setCamera(stream);
-                    setIsVideoOff(false);
-                }
+                setCamera(stream);
+                setIsVideoOff(false);
             } catch (error) {
                 console.error("Error accessing user media:", error);
+                alert("Failed to access camera. Please ensure camera permissions are granted.");
             }
         }
     };
+
+    const handleScreenSharing = async () => {
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+                const screen = await navigator.mediaDevices.getDisplayMedia({
+                    audio: true,
+                    video: true,
+                });
+                shareScreen(screen);
+                screen.getTracks().forEach(track => {
+                    track.onended = () => {
+                        shareScreen(null);
+                        console.log("[ScreenShare] Screen sharing stopped");
+                    };
+                });
+            } else {
+                console.error("Screen sharing not supported.");
+                alert("Your browser does not support screen sharing.");
+            }
+        } catch (error) {
+            console.error("Error accessing display media:", error);
+            alert("Failed to start screen sharing. Please ensure permissions are granted.");
+        }
+    };
+
+
 
 
     return (

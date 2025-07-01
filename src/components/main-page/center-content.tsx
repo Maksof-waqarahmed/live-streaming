@@ -14,7 +14,7 @@ export const LeftComponent = () => {
         setLoading(true)
         const generated = generateCode()
         setTimeout(() => {
-            router.push(`/stream/${generated}`)
+            router.push(`/room/${generated}`)
         }, 5000)
     }
 
