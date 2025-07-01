@@ -2,14 +2,15 @@
 import { MicOff } from 'lucide-react'
 import React, { useEffect, useRef } from 'react'
 import { Badge } from '../ui/badge'
+import { MovableBox } from './moveable-box';
 interface MainAreaProps {
     screen: MediaStream | null;
+    camera: MediaStream | null;
+    isVideoOff: boolean;
+    isMuted: boolean;
+    showChat: boolean;
 }
-export const MainArea = ({ screen }: MainAreaProps) => {
-    console.log("Screen Share", screen)
-    const [isVideoOff, setIsVideoOff] = React.useState(false);
-    const [isMuted, setIsMuted] = React.useState(false);
-    const [showChat, setShowChat] = React.useState(false);
+export const MainArea = ({ screen, isVideoOff, isMuted, showChat, camera }: MainAreaProps) => {
     const videoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
@@ -19,42 +20,25 @@ export const MainArea = ({ screen }: MainAreaProps) => {
     }, [screen]);
     return (
         <>
-            <div className={`flex ${showChat ? "mr-96" : ""} transition-all duration-300`}>
+            <div className={`flex ${showChat ? "mr-96" : ""} transition-all duration-300 relative`}>
                 <div className="flex-1 p-4">
                     {/* Video Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-120px)]">
                         {/* Local Video */}
                         <div className="relative bg-gray-900 rounded-lg overflow-hidden">
-                            {isVideoOff ? (
-                                <div className="w-full h-full flex items-center justify-center bg-gray-700">
-                                    <div className="text-center">
-                                        <div className="w-24 h-24 bg-gray-600 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                            <span className="text-white text-2xl font-semibold">You</span>
-                                        </div>
-                                        <p className="text-white text-lg">Camera is off</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-blue-900/50 to-purple-900/50 flex items-center justify-center">
-                                    {screen ? (
-                                        <video
-                                            ref={videoRef}
-                                            autoPlay
-                                            playsInline
-                                            muted
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-
+                            <div className="w-full h-full bg-gradient-to-br from-blue-900/50 to-purple-900/50 flex items-center justify-center">
+                                {screen ? (
+                                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gray-700">
                                         <div className="text-center">
-                                            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                                            <div className="w-24 h-24 bg-gray-600 rounded-full flex items-center justify-center mb-4 mx-auto">
                                                 <span className="text-white text-2xl font-semibold">You</span>
                                             </div>
-                                            <p className="text-white/80 text-lg">Your Video</p>
                                         </div>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="absolute bottom-4 left-4">
                                 <div className="bg-black/50 text-white px-3 py-1 rounded-full text-sm">You</div>
@@ -85,6 +69,9 @@ export const MainArea = ({ screen }: MainAreaProps) => {
                         </div>
                     </div>
                 </div>
+                {!isVideoOff && <div className='absolute inset-0 z-20'>
+                    <MovableBox camera={camera} />
+                </div>}
             </div>
         </>
     )

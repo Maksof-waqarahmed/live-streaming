@@ -1,17 +1,20 @@
 'use client'
 import { MessageCircle, Mic, MicOff, Monitor, PhoneOff, Video, VideoOff } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '../ui/button';
 
 interface ButtonBarProps {
     showChat: boolean;
     setShowChat: (value: boolean) => void;
     shareScreen: (data: any) => void;
+    isMuted: boolean;
+    setIsMuted: (value: boolean) => void;
+    isVideoOff: boolean;
+    setIsVideoOff: (value: boolean) => void;
+    setCamera: (value: any) => void;
+    camera: MediaStream | null;
 }
 
-export const ButtonBar = ({ showChat, setShowChat, shareScreen }: ButtonBarProps) => {
-    const [isMuted, setIsMuted] = useState(false)
-    const [isVideoOff, setIsVideoOff] = useState(false)
+export const ButtonBar = ({ showChat, setShowChat, shareScreen, isMuted, setIsMuted, isVideoOff, setIsVideoOff, setCamera, camera }: ButtonBarProps) => {
 
     const handleScreenSharing = async () => {
         try {
@@ -33,8 +36,29 @@ export const ButtonBar = ({ showChat, setShowChat, shareScreen }: ButtonBarProps
         //         };
         //     });
         // }
-        console.log("Screen", screen);
     }
+
+    const handleVideoToggle = async () => {
+        if (!isVideoOff) {
+            camera?.getTracks().forEach(track => track.stop());
+            setCamera(null);
+            setIsVideoOff(true);
+        } else {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                });
+
+                if (stream.getVideoTracks().length > 0) {
+                    setCamera(stream);
+                    setIsVideoOff(false);
+                }
+            } catch (error) {
+                console.error("Error accessing user media:", error);
+            }
+        }
+    };
+
 
     return (
         <>
@@ -58,7 +82,7 @@ export const ButtonBar = ({ showChat, setShowChat, shareScreen }: ButtonBarProps
                             variant="ghost"
                             size="lg"
                             className={`rounded-full w-12 h-12 ${isVideoOff ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
-                            onClick={() => setIsVideoOff(!isVideoOff)}
+                            onClick={handleVideoToggle}
                         >
                             {isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
                         </Button>

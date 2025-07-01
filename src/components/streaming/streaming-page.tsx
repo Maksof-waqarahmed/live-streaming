@@ -10,6 +10,9 @@ export default function StreamingPage() {
     const [showMeetingInfo, setShowMeetingInfo] = useState(true)
     const [showChat, setShowChat] = useState(false)
     const [screen, setScreen] = useState(null)
+    const [camera, setCamera] = useState(null)
+    const [isVideoOff, setIsVideoOff] = useState(true)
+    const [isMuted, setIsMuted] = useState(true)
 
     const handleCloseInvitePopup = (data: boolean) => {
         setShowMeetingInfo(data);
@@ -19,10 +22,6 @@ export default function StreamingPage() {
         setShowChat(!showChat);
     }
 
-    useEffect(() => {
-        
-    }, [screen])
-
     return (
         <div className="min-h-screen bg-gray-800 relative">
 
@@ -30,9 +29,9 @@ export default function StreamingPage() {
                 <InvitePopup setShowMeetingInfo={handleCloseInvitePopup} />
             )}
 
-            <MainArea screen={screen} />
+            <MainArea screen={screen} camera={camera} showChat={showChat} isVideoOff={isVideoOff} isMuted={isMuted} />
 
-            <ButtonBar showChat={showChat} setShowChat={toggleChat} shareScreen={setScreen} />
+            <ButtonBar showChat={showChat} setShowChat={toggleChat} shareScreen={setScreen} isVideoOff={isVideoOff} isMuted={isMuted} setIsVideoOff={setIsVideoOff} setIsMuted={setIsMuted} setCamera={setCamera} camera={camera} />
 
             {showChat && (
                 <Chat setShowChat={setShowChat} />
