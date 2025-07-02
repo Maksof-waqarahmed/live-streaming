@@ -9,11 +9,11 @@ interface Position {
 }
 
 interface MovableBoxProps {
-    camera: MediaStream | null;
+    localCamera: React.RefObject<MediaStream | null>;
     className?: string;
 }
 
-export function MovableBox({ camera, className }: MovableBoxProps) {
+export function MovableBox({ localCamera, className }: MovableBoxProps) {
     const [position, setPosition] = useState<Position>({ x: 20, y: 20 });
     const [dragPosition, setDragPosition] = useState<Position>({ x: 20, y: 20 });
     const [isDragging, setIsDragging] = useState(false);
@@ -21,23 +21,17 @@ export function MovableBox({ camera, className }: MovableBoxProps) {
     const [lastCornerIndex, setLastCornerIndex] = useState<number>(0);
     const boxRef = useRef<HTMLDivElement>(null);
     const parentRef = useRef<HTMLElement | null>(null);
-    const cameraRef = useRef<HTMLVideoElement>(null);
+    const localCameraRef = useRef<HTMLVideoElement>(null);
 
     const boxWidth = 235;
     const boxHeight = 132;
     const margin = 20;
 
     useEffect(() => {
-        if (camera && cameraRef.current) {
-            cameraRef.current.srcObject = camera;
-
-            cameraRef.current.onloadedmetadata = () => {
-                cameraRef.current?.play().catch((err) => {
-                    console.error("Video play error:", err);
-                });
-            };
+        if (localCameraRef.current && localCamera.current) {
+            localCameraRef.current.srcObject = localCamera.current;
         }
-    }, [camera]);
+    }, [localCamera.current]);
 
     const constrainPosition = useCallback((pos: Position, parentRect: DOMRect): Position => {
         return {
@@ -175,7 +169,7 @@ export function MovableBox({ camera, className }: MovableBoxProps) {
             >
                 <div className="flex flex-col items-center justify-center h-full p-1 text-white">
                     <p>You</p>
-                    <video ref={cameraRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                    <video ref={localCameraRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                 </div>
             </Card>
         </div>

@@ -10,24 +10,14 @@ import { useWebRTC } from "@/hooks/useWebRTC";
 export default function StreamingPage({ roomID }: { roomID: string }) {
     const [showMeetingInfo, setShowMeetingInfo] = useState(true);
     const [showChat, setShowChat] = useState(false);
-    const [screen, setScreen] = useState<MediaStream | null>(null);
-    const [camera, setCamera] = useState<MediaStream | null>(null);
-    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [isVideoOff, setIsVideoOff] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
-
-    const activeStream = screen || camera;
-
-    useWebRTC(roomID, activeStream, setRemoteStream);
-
-    // Cleanup media streams on unmount
-    useEffect(() => {
-        return () => {
-            camera?.getTracks().forEach(track => track.stop());
-            screen?.getTracks().forEach(track => track.stop());
-            console.log("[StreamingPage] Cleaned up media streams");
-        };
-    }, [camera, screen]);
+    const [isScreenSharing, setIsScreenSharing] = useState<Boolean>(false);
+    const localStreamRef = useRef<MediaStream | null>(null);
+    const remoteStreamRef = useRef<MediaStream | null>(null);
+    const localCameraRef = useRef<MediaStream | null>(null);
+    const remoteCameraRef = useRef<MediaStream | null>(null);
+    console.log("localStreamRef", localStreamRef.current);
 
     const handleCloseInvitePopup = (data: boolean) => {
         setShowMeetingInfo(data);
@@ -43,23 +33,23 @@ export default function StreamingPage({ roomID }: { roomID: string }) {
                 <InvitePopup setShowMeetingInfo={handleCloseInvitePopup} />
             )}
             <MainArea
-                screen={screen}
-                camera={camera}
-                remote={remoteStream}
-                showChat={showChat}
+                localCameraRef={localCameraRef}
+                remoteStreamRef={remoteStreamRef}
+                localStreamRef={localStreamRef}
                 isVideoOff={isVideoOff}
                 isMuted={isMuted}
+                showChat={showChat}
             />
             <ButtonBar
+                setIsScreenSharing={setIsScreenSharing}
                 showChat={showChat}
                 setShowChat={toggleChat}
-                shareScreen={setScreen}
-                isVideoOff={isVideoOff}
-                isMuted={isMuted}
                 setIsVideoOff={setIsVideoOff}
                 setIsMuted={setIsMuted}
-                setCamera={setCamera}
-                camera={camera}
+                isVideoOff={isVideoOff}
+                isMuted={isMuted}
+                cameraRef={localCameraRef}
+                screenRef={localStreamRef}
             />
             {showChat && <Chat setShowChat={setShowChat} />}
         </div>
