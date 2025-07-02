@@ -1,11 +1,7 @@
-import StreamingPage from '@/components/streaming/streaming-page'
-import React, { use } from 'react'
+import StreamingPage from '@/components/streaming/streaming-page';
+import React from 'react';
 
-export default async function Page({ params }: { params: Promise<{ streamID: string }> }) {
+export default async function Page({ params }: { params: { streamID: string } }) {
   const { streamID } = await params;
-  return (
-    <>
-      <StreamingPage roomID={streamID} />
-    </>
-  );
+  return <StreamingPage room={streamID} />;
 }

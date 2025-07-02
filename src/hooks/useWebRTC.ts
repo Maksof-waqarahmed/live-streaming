@@ -1,181 +1,125 @@
-"use client";
+'use client';
 
-import Pusher from "pusher-js";
-import { useEffect, useRef, useState } from "react";
+import Pusher, { Channel } from 'pusher-js';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import SimplePeer from 'simple-peer';
 
-export function useWebRTC(
-    roomID: string,
-    localStream: MediaStream | null,
-    onRemoteStream: (stream: MediaStream) => void
-) {
-    const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+interface UseWebRTCProps {
+    roomId: string;
+    isJoining: boolean;
+}
+
+interface WebRTCState {
+    localStream: MediaStream | null;
+    remoteStream: MediaStream | null;
+    peer: SimplePeer.Instance | null;
+    error: string | null;
+}
+
+export const useWebRTC = ({ roomId, isJoining }: UseWebRTCProps): WebRTCState => {
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+    const [peer, setPeer] = useState<SimplePeer.Instance | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const pusherRef = useRef<Pusher | null>(null);
-    const channelRef = useRef<any>(null);
+    const channelRef = useRef<Channel | null>(null);
+    const router = useRouter();
 
     useEffect(() => {
-        if (!localStream) {
-            console.log("[WebRTC] No local stream, skipping peer connection setup");
-            return;
-        }
+        console.log('[WebRTC] Initializing for room:', roomId, 'isJoining:', isJoining);
 
-        console.log("[WebRTC] Initializing peer connection...");
-
-        const peer = new RTCPeerConnection({
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                {
-                    urls: "turn:openrelay.metered.ca:80",
-                    username: "openrelayproject",
-                    credential: "openrelayproject",
-                },
-                {
-                    urls: "turn:openrelay.metered.ca:443",
-                    username: "openrelayproject",
-                    credential: "openrelayproject",
-                },
-            ],
+        // Initialize Pusher
+        pusherRef.current = new Pusher('89b3bb8cda6c1d5914c5', {
+            cluster: 'ap2',
+            forceTLS: true,
+            authEndpoint: '/api/pusher-auth',
         });
-        peerConnectionRef.current = peer;
+        console.log('[WebRTC] Pusher initialized, subscribing to private-room-', roomId);
+        channelRef.current = pusherRef.current.subscribe(`private-room-${roomId}`);
 
-        peer.onconnectionstatechange = () => {
-            console.log("[WebRTC] Connection state:", peer.connectionState);
-            if (peer.connectionState === "failed") {
-                console.error("[WebRTC] Connection failed, restarting ICE...");
-                peer.restartIce();
-                alert("WebRTC connection failed. Please check your network and try again.");
-            } else if (peer.connectionState === "disconnected") {
-                alert("WebRTC connection disconnected. Attempting to reconnect...");
-            }
-        };
-
-        localStream.getTracks().forEach((track) => {
-            console.log("[WebRTC] Adding local track:", track.kind);
-            peer.addTrack(track, localStream);
+        // Handle Pusher connection state
+        pusherRef.current.connection.bind('state_change', ({ current }: { current: string }) => {
+            console.log('[Pusher] Connection state:', current);
         });
 
-        const remoteStream = new MediaStream();
-        peer.ontrack = (event) => {
-            console.log("[WebRTC] 🔔 Track received:", event.track.kind);
-            event.streams[0].getTracks().forEach((track) => {
-                console.log("[WebRTC] ➕ Track added to remoteStream:", track.kind);
-                remoteStream.addTrack(track);
-            });
-            onRemoteStream(remoteStream);
-            console.log("[WebRTC] ✅ Remote video loaded");
-        };
-
-        const pusher = new Pusher("89b3bb8cda6c1d5914c5", {
-            cluster: "ap2",
-            authEndpoint: "http://192.168.1.49:3000/api/pusher-auth",
-            auth: {},
-            forceTLS: false, // Use http for local network
-            enabledTransports: ["ws"], // Force WebSocket
-        });
-        pusherRef.current = pusher;
-
-        pusher.connection.bind("error", (err: any) => {
-            console.error("[Pusher] Connection error:", err);
-            alert("Failed to connect to signaling server. Please try again.");
+        // Handle Pusher errors
+        pusherRef.current.connection.bind('error', (err: any) => {
+            setError('Pusher connection error: ' + (err.error?.data?.message || err.message));
+            console.error('[Pusher] Error:', err, 'Code:', err.error?.data?.code);
         });
 
-        pusher.connection.bind("connected", () => {
-            console.log("[Pusher] Connected to Pusher");
-        });
+        // Get local stream
+        navigator.mediaDevices
+            .getUserMedia({ video: true, audio: true })
+            .then((stream) => {
+                console.log('[WebRTC] Local stream acquired');
+                setLocalStream(stream);
 
-        const channel = pusher.subscribe(`private-${roomID}`);
-        channelRef.current = channel;
-        console.log("[WebRTC] Subscribed to private room:", `private-${roomID}`);
+                // Initialize SimplePeer
+                const p = new SimplePeer({
+                    initiator: !isJoining,
+                    trickle: false,
+                    stream,
+                    config: {
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+                    },
+                });
 
-        channel.bind("pusher:subscription_error", (err: any) => {
-            console.error("[Pusher] Subscription error:", err);
-            alert("Failed to subscribe to Pusher channel. Please check authentication.");
-        });
-
-        channel.bind("pusher:subscription_succeeded", () => {
-            console.log("[Pusher] Subscription succeeded for room:", `private-${roomID}`);
-        });
-
-        channel.bind("pusher:member_added", (member: any) => {
-            console.log("[Pusher] Member added:", member);
-        });
-
-        channel.bind("pusher:member_removed", (member: any) => {
-            console.log("[Pusher] Member removed:", member);
-        });
-
-        peer.onicecandidate = (event) => {
-            if (event.candidate) {
-                console.log("[WebRTC] Sending ICE candidate:", event.candidate);
-                channel.trigger("client-ice", { candidate: event.candidate });
-            } else {
-                console.log("[WebRTC] ICE gathering complete");
-            }
-        };
-
-        channel.bind("client-offer", async ({ offer }) => {
-            console.log("[WebRTC] 📥 Received offer:", offer);
-            try {
-                await peer.setRemoteDescription(new RTCSessionDescription(offer));
-                const answer = await peer.createAnswer();
-                await peer.setLocalDescription(answer);
-                channel.trigger("client-answer", { answer });
-                console.log("[WebRTC] 🔼 Answer sent:", answer);
-            } catch (error) {
-                console.error("[WebRTC] Error handling offer:", error);
-                alert("Failed to process WebRTC offer. Please try again.");
-            }
-        });
-
-        channel.bind("client-answer", async ({ answer }) => {
-            console.log("[WebRTC] 📥 Received answer:", answer);
-            try {
-                await peer.setRemoteDescription(new RTCSessionDescription(answer));
-            } catch (error) {
-                console.error("[WebRTC] Error handling answer:", error);
-                alert("Failed to process WebRTC answer. Please try again.");
-            }
-        });
-
-        channel.bind("client-ice", async ({ candidate }) => {
-            if (candidate) {
-                console.log("[WebRTC] 📥 ICE candidate received:", candidate);
-                try {
-                    await peer.addIceCandidate(new RTCIceCandidate(candidate));
-                } catch (error) {
-                    console.error("[WebRTC] Error adding ICE candidate:", error);
-                }
-            }
-        });
-
-        (async () => {
-            console.log("[WebRTC] Current URL:", window.location.href);
-            console.log("[WebRTC] Current hash:", window.location.hash);
-            const isCaller = window.location.hash === "#caller";
-            console.log("[WebRTC] isCaller:", isCaller);
-
-            if (isCaller) {
-                console.log("[WebRTC] 🟢 Acting as caller");
-                channel.bind("pusher:subscription_succeeded", async () => {
-                    console.log("[Pusher] Subscription succeeded for caller, sending offer...");
+                // Handle signaling
+                p.on('signal', async (data) => {
+                    console.log('[WebRTC] Sending signal data for room:', roomId, 'Data size:', JSON.stringify(data).length);
                     try {
-                        const offer = await peer.createOffer();
-                        await peer.setLocalDescription(offer);
-                        channel.trigger("client-offer", { offer });
-                        console.log("[WebRTC] 🔼 Offer sent:", offer);
-                    } catch (error) {
-                        console.error("[WebRTC] Error creating offer:", error);
-                        alert("Failed to create WebRTC offer. Please try again.");
+                        const response = await fetch('/api/pusher', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ roomId, signalData: data }),
+                        });
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`Failed to send signaling data: ${response.status} ${errorText}`);
+                        }
+                        console.log('[WebRTC] Signal data sent successfully');
+                    } catch (err) {
+                        setError('Failed to send signaling data');
+                        console.error('[WebRTC] Signaling error:', err);
                     }
                 });
-            } else {
-                console.log("[WebRTC] 🟡 Waiting for offer...");
-            }
-        })();
 
+                // Handle remote stream
+                p.on('stream', (remote) => {
+                    console.log('[WebRTC] Remote stream received');
+                    setRemoteStream(remote);
+                });
+
+                // Handle errors
+                p.on('error', (err) => {
+                    setError('WebRTC connection error');
+                    console.error('[WebRTC] Peer error:', err);
+                });
+
+                setPeer(p);
+                console.log('[WebRTC] SimplePeer initialized');
+
+                // Receive signaling data
+                channelRef.current.bind('signal', ({ signalData }) => {
+                    console.log('[WebRTC] Received signal data:', signalData);
+                    p.signal(signalData);
+                });
+            })
+            .catch((err) => {
+                setError('Failed to access media devices');
+                console.error('[WebRTC] Media error:', err);
+            });
+
+        // Cleanup
         return () => {
-            console.log("[WebRTC] Cleaning up peer connection and Pusher subscription");
-            peer.close();
-            if (pusherRef.current) pusherRef.current.unsubscribe(`private-${roomID}`);
+            console.log('[WebRTC] Cleaning up for room:', roomId);
+            peer?.destroy();
+            pusherRef.current?.unsubscribe(`private-room-${roomId}`);
+            localStream?.getTracks().forEach((track) => track.stop());
         };
-    }, [localStream, roomID, onRemoteStream]);
-}
+    }, [roomId, isJoining]);
+
+    return { localStream, remoteStream, peer, error };
+};

@@ -1,16 +1,9 @@
 'use client';
 
-import {
-    MessageCircle,
-    Mic,
-    MicOff,
-    Monitor,
-    PhoneOff,
-    Video,
-    VideoOff
-} from 'lucide-react';
+import { MessageCircle, Mic, MicOff, Monitor, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useCallback } from 'react';
+import SimplePeer from 'simple-peer';
 
 interface ButtonBarProps {
     setIsScreenSharing: (value: boolean) => void;
@@ -22,6 +15,8 @@ interface ButtonBarProps {
     isVideoOff: boolean;
     cameraRef: React.RefObject<MediaStream | null>;
     screenRef: React.RefObject<MediaStream | null>;
+    peer: SimplePeer.Instance | null;
+    roomId?: string;
 }
 
 export const ButtonBar = ({
@@ -33,54 +28,68 @@ export const ButtonBar = ({
     isMuted,
     isVideoOff,
     cameraRef,
-    screenRef
+    screenRef,
+    peer,
+    roomId,
 }: ButtonBarProps) => {
-
     const handleVideoToggle = useCallback(async () => {
         if (!isVideoOff) {
-            cameraRef.current?.getTracks().forEach(track => track.stop());
+            cameraRef.current?.getTracks().forEach((track) => track.stop());
             cameraRef.current = null;
             setIsVideoOff(true);
         } else {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true,
-                    audio: true
+                    audio: true,
                 });
                 cameraRef.current = stream;
+                if (peer) {
+                    peer.addStream(stream);
+                }
                 setIsVideoOff(false);
             } catch (error) {
-                console.error("Error accessing user media:", error);
-                alert("Failed to access camera. Please ensure camera permissions are granted.");
+                console.error('Error accessing user media:', error);
+                alert('Failed to access camera. Please ensure camera permissions are granted.');
             }
         }
-    }, [isVideoOff, setIsVideoOff]);
+    }, [isVideoOff, setIsVideoOff, cameraRef, peer]);
 
     const handleScreenSharing = useCallback(async () => {
         try {
             if (navigator.mediaDevices.getDisplayMedia) {
                 const screen = await navigator.mediaDevices.getDisplayMedia({
                     audio: true,
-                    video: true
+                    video: true,
                 });
                 screenRef.current = screen;
+                if (peer) {
+                    peer.addStream(screen);
+                }
                 setIsScreenSharing(true);
 
-                screen.getTracks().forEach(track => {
+                screen.getTracks().forEach((track) => {
                     track.onended = () => {
                         screenRef.current = null;
                         setIsScreenSharing(false);
-                        console.log("[ScreenShare] Screen sharing stopped");
+                        console.log('[ScreenShare] Screen sharing stopped');
                     };
                 });
             } else {
-                alert("Your browser does not support screen sharing.");
+                alert('Your browser does not support screen sharing.');
             }
         } catch (error) {
-            console.error("Screen sharing error:", error);
-            alert("Failed to start screen sharing.");
+            console.error('Screen sharing error:', error);
+            alert('Failed to start screen sharing.');
         }
-    }, [setIsScreenSharing]);
+    }, [setIsScreenSharing, screenRef, peer]);
+
+    const handleMicToggle = useCallback(() => {
+        if (cameraRef.current) {
+            cameraRef.current.getAudioTracks()[0].enabled = !isMuted;
+            setIsMuted(!isMuted);
+        }
+    }, [isMuted, setIsMuted, cameraRef]);
 
     return (
         <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4">
@@ -88,14 +97,14 @@ export const ButtonBar = ({
                 <div className="flex items-center space-x-4">
                     <span className="text-white text-sm">1:06 PM</span>
                     <span className="text-gray-400 text-sm">|</span>
-                    <span className="text-white text-sm">abc-defg-hij</span>
+                    <span className="text-white text-sm">{roomId}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                     <Button
                         variant="ghost"
                         size="lg"
-                        className={`rounded-full w-12 h-12 ${isMuted ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
-                        onClick={() => setIsMuted(!isMuted)}
+                        className={`rounded-full w-12 h-12 ${isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
+                        onClick={handleMicToggle}
                     >
                         {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                     </Button>
@@ -103,7 +112,7 @@ export const ButtonBar = ({
                     <Button
                         variant="ghost"
                         size="lg"
-                        className={`rounded-full w-12 h-12 ${isVideoOff ? "bg-red-600 hover:bg-red-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
+                        className={`rounded-full w-12 h-12 ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
                         onClick={handleVideoToggle}
                     >
                         {isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
@@ -122,6 +131,12 @@ export const ButtonBar = ({
                         variant="ghost"
                         size="lg"
                         className="rounded-full w-12 h-12 bg-red-600 hover:bg-red-700 text-white ml-4"
+                        onClick={() => {
+                            cameraRef.current?.getTracks().forEach((track) => track.stop());
+                            screenRef.current?.getTracks().forEach((track) => track.stop());
+                            peer?.destroy();
+                            window.location.href = '/';
+                        }}
                     >
                         <PhoneOff className="h-5 w-5" />
                     </Button>
@@ -131,7 +146,7 @@ export const ButtonBar = ({
                     <Button
                         variant="ghost"
                         size="lg"
-                        className={`rounded-full w-12 h-12 ${showChat ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 hover:bg-gray-600"} text-white`}
+                        className={`rounded-full w-12 h-12 ${showChat ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
                         onClick={() => setShowChat(!showChat)}
                     >
                         <MessageCircle className="h-5 w-5" />
