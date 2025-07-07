@@ -13,9 +13,10 @@ export const LeftComponent = () => {
     function handleStartStreaming() {
         setLoading(true)
         const generated = generateCode()
+        console.log("generatedCode", generateCode)
         setTimeout(() => {
             router.push(`/room/${generated}`)
-        }, 5000)
+        }, 3000)
     }
 
     return (
