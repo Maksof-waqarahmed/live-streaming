@@ -75,7 +75,7 @@ export default function StreamingPage({ room }: { room: string }) {
     useEffect(() => {
         const timeout = setTimeout(() => {
             joinMeeting();
-        }, 200); // wait briefly to ensure container is mounted
+        }, 200);
 
         return () => {
             clearTimeout(timeout);
